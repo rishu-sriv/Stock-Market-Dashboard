@@ -143,5 +143,5 @@ Every concept implemented here reappears in every project above.
 
 ## Author
 
-**Rishu Srivastava** · B.Tech CSE · VIT Vellore · 2026  
+**Sameer Srivastava** · B.Tech CSE · VIT Vellore · 2026  
 [Portfolio](https://macos-portfolio-wheat.vercel.app) · [GitHub](https://github.com/rishu-sriv) · [LinkedIn](https://www.linkedin.com/in/sameer-srivastava-01a438371/)
