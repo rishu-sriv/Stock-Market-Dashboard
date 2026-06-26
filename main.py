@@ -1,26 +1,29 @@
 from src.data_loader import fetch_stock_data
-from src.utils import describe_data, check_missing_values, clean_data, explain_ohlcv
+from src.utils import clean_data
+from src.visualization import (
+    plot_closing_price,
+    plot_candlestick,
+    plot_volume,
+    plot_with_moving_average
+)
 
-# Fetch data
-apple = fetch_stock_data("AAPL", period="1y")
+# Fetch and clean
+ticker = "AAPL"
+df = fetch_stock_data(ticker, period="1y")
+df = clean_data(df)
 
-# Understand the columns
-explain_ohlcv()
+# Chart 1 — Closing price
+fig1 = plot_closing_price(df, ticker)
+fig1.show()
 
-# Full summary
-describe_data(apple, ticker="AAPL")
+# Chart 2 — Candlestick
+fig2 = plot_candlestick(df, ticker)
+fig2.show()
 
-# Check data quality
-check_missing_values(apple)
+# Chart 3 — Volume
+fig3 = plot_volume(df, ticker)
+fig3.show()
 
-# Clean it
-apple = clean_data(apple)
-
-# One specific thing to notice:
-# High is always >= Open, Close, Low
-# Low is always <= Open, Close, High
-# Verify this yourself:
-print("\n✅ Sanity Checks")
-print(f"High >= Close always: {(apple['High'] >= apple['Close']).all()}")
-print(f"Low  <= Close always: {(apple['Low']  <= apple['Close']).all()}")
-print(f"High >= Low   always: {(apple['High'] >= apple['Low']).all()}")
+# Chart 4 — Price + Moving Average
+fig4 = plot_with_moving_average(df, ticker, window=20)
+fig4.show()
