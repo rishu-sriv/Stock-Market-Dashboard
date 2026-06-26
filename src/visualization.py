@@ -553,3 +553,222 @@ def plot_52week_range(info: dict) -> go.Figure:
     )
 
     return fig
+
+def plot_normalized_prices(comparison_data: dict) -> go.Figure:
+    """
+    Overlay normalized price chart for all stocks.
+
+    Every stock starts at 100 on Day 1.
+    Shows relative growth fairly regardless of actual price.
+
+    Args:
+        comparison_data: Dict returned by build_comparison_data
+
+    Returns:
+        Plotly Figure object
+    """
+    fig = go.Figure()
+
+    for ticker, data in comparison_data.items():
+        fig.add_trace(go.Scatter(
+            x=data["normalized"].index,
+            y=data["normalized"],
+            mode="lines",
+            name=ticker,
+            line=dict(width=2)
+        ))
+
+    # Baseline at 100
+    fig.add_hline(
+        y=100,
+        line_color="white",
+        line_width=0.8,
+        line_dash="dot",
+        opacity=0.4
+    )
+
+    fig.update_layout(
+        title="Normalized Price Comparison (Base = 100 on Day 1)",
+        xaxis_title="Date",
+        yaxis_title="Normalized Price",
+        hovermode="x unified",
+        template="plotly_dark"
+    )
+
+    return fig
+
+
+def plot_cumulative_returns_comparison(comparison_data: dict) -> go.Figure:
+    """
+    Overlay cumulative return chart for all stocks.
+
+    Shows the growth of ₹1 (or $1) invested in each stock on Day 1.
+
+    Args:
+        comparison_data: Dict returned by build_comparison_data
+
+    Returns:
+        Plotly Figure object
+    """
+    fig = go.Figure()
+
+    for ticker, data in comparison_data.items():
+        fig.add_trace(go.Scatter(
+            x=data["cumulative_returns"].index,
+            y=data["cumulative_returns"],
+            mode="lines",
+            name=ticker,
+            line=dict(width=2)
+        ))
+
+    fig.add_hline(
+        y=1.0,
+        line_color="white",
+        line_width=0.8,
+        line_dash="dot",
+        opacity=0.4,
+        annotation_text="Break-even",
+        annotation_position="left"
+    )
+
+    fig.update_layout(
+        title="Cumulative Return Comparison",
+        xaxis_title="Date",
+        yaxis_title="Portfolio Value (₹1 invested)",
+        hovermode="x unified",
+        template="plotly_dark"
+    )
+
+    return fig
+
+
+def plot_return_comparison_bar(comparison_data: dict) -> go.Figure:
+    """
+    Horizontal bar chart comparing total return across stocks.
+    Sorted from highest to lowest return.
+    Green = positive return, Red = negative return.
+
+    Args:
+        comparison_data: Dict returned by build_comparison_data
+
+    Returns:
+        Plotly Figure object
+    """
+    # Sort by return
+    sorted_data = sorted(
+        comparison_data.items(),
+        key=lambda x: x[1]["total_return"]
+    )
+
+    tickers = [d[0] for d in sorted_data]
+    returns = [d[1]["total_return"] * 100 for d in sorted_data]
+    colors  = ["#26A69A" if r >= 0 else "#EF5350" for r in returns]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=returns,
+        y=tickers,
+        orientation="h",
+        marker_color=colors,
+        text=[f"{r:+.2f}%" for r in returns],
+        textposition="outside"
+    ))
+
+    fig.add_vline(x=0, line_color="white", line_width=1, opacity=0.4)
+
+    fig.update_layout(
+        title="Total Return Comparison",
+        xaxis_title="Total Return (%)",
+        yaxis_title="Stock",
+        template="plotly_dark",
+        margin=dict(l=100)
+    )
+
+    return fig
+
+
+def plot_risk_return_scatter(comparison_data: dict) -> go.Figure:
+    """
+    Scatter plot: X = volatility (risk), Y = total return (reward).
+
+    Top-left  = ideal (high return, low risk)
+    Bottom-right = worst (low return, high risk)
+
+    Args:
+        comparison_data: Dict returned by build_comparison_data
+
+    Returns:
+        Plotly Figure object
+    """
+    tickers = list(comparison_data.keys())
+    vols    = [comparison_data[t]["volatility"] * 100 for t in tickers]
+    returns = [comparison_data[t]["total_return"] * 100 for t in tickers]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=vols,
+        y=returns,
+        mode="markers+text",
+        text=tickers,
+        textposition="top center",
+        marker=dict(
+            size=14,
+            color=returns,
+            colorscale="RdYlGn",
+            showscale=True,
+            colorbar=dict(title="Return %")
+        ),
+        name="Stocks"
+    ))
+
+    fig.add_hline(y=0, line_color="white", line_width=0.8, opacity=0.3)
+
+    fig.update_layout(
+        title="Risk vs Return Map  |  Top-left = Best, Bottom-right = Worst",
+        xaxis_title="Annualized Volatility / Risk (%)",
+        yaxis_title="Total Return (%)",
+        template="plotly_dark"
+    )
+
+    return fig
+
+
+def plot_volatility_comparison_bar(comparison_data: dict) -> go.Figure:
+    """
+    Bar chart comparing annualized volatility across stocks.
+    Sorted from lowest to highest risk.
+
+    Args:
+        comparison_data: Dict returned by build_comparison_data
+
+    Returns:
+        Plotly Figure object
+    """
+    sorted_data = sorted(
+        comparison_data.items(),
+        key=lambda x: x[1]["volatility"]
+    )
+
+    tickers = [d[0] for d in sorted_data]
+    vols    = [d[1]["volatility"] * 100 for d in sorted_data]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=tickers,
+        y=vols,
+        marker_color="#FF9800",
+        text=[f"{v:.1f}%" for v in vols],
+        textposition="outside"
+    ))
+
+    fig.update_layout(
+        title="Annualized Volatility Comparison (Lower = Less Risky)",
+        xaxis_title="Stock",
+        yaxis_title="Annualized Volatility (%)",
+        template="plotly_dark"
+    )
+
+    return fig

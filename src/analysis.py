@@ -184,3 +184,108 @@ def compare_volatility(returns_dict: dict) -> None:
             label = "Very High"
 
         print(f"  {ticker:<12} {vol:<20.2%} {label}")
+
+def normalize_prices(df: pd.DataFrame) -> pd.Series:
+    """
+    Normalize closing prices to start at 100 on Day 1.
+
+    Formula: (Price / First Price) × 100
+
+    This allows fair visual comparison between stocks
+    regardless of their actual price or currency.
+
+    Args:
+        df: OHLCV DataFrame with a "Close" column
+
+    Returns:
+        Series of normalized prices starting at 100
+    """
+    return (df["Close"] / df["Close"].iloc[0]) * 100
+
+
+def build_comparison_data(tickers: list, period: str = "1y") -> dict:
+    """
+    Fetch and compute all comparison metrics for a list of tickers.
+
+    For each ticker, computes:
+        - Raw OHLCV data
+        - Daily returns
+        - Cumulative returns
+        - Normalized prices
+        - Annualized volatility
+        - Total return
+
+    Args:
+        tickers: List of ticker symbols
+        period: How far back to fetch data
+
+    Returns:
+        Dict structured as:
+        {
+            "AAPL": {
+                "df": DataFrame,
+                "daily_returns": Series,
+                "cumulative_returns": Series,
+                "normalized": Series,
+                "volatility": float,
+                "total_return": float,
+            },
+            ...
+        }
+    """
+    from src.data_loader import fetch_stock_data
+    from src.utils import clean_data
+
+    results = {}
+
+    for ticker in tickers:
+        print(f"Processing {ticker}...")
+        df = fetch_stock_data(ticker, period=period)
+        df = clean_data(df)
+        daily = calculate_daily_returns(df)
+        cumulative = calculate_cumulative_returns(daily)
+
+        results[ticker] = {
+            "df"                 : df,
+            "daily_returns"      : daily,
+            "cumulative_returns" : cumulative,
+            "normalized"         : normalize_prices(df),
+            "volatility"         : annualized_volatility(daily),
+            "total_return"       : total_return(df),
+        }
+
+    return results
+
+
+def print_comparison_table(comparison_data: dict) -> None:
+    """
+    Print a side-by-side comparison table of all stocks.
+
+    Shows total return, annualized volatility, and
+    return-to-risk ratio for each stock, sorted by total return.
+
+    Args:
+        comparison_data: Dict returned by build_comparison_data
+    """
+    print(f"\n{'='*65}")
+    print(f"  Multi-Stock Comparison")
+    print(f"{'='*65}")
+    print(f"  {'Ticker':<10} {'Total Return':>14} {'Volatility':>14} {'Return/Risk':>14}")
+    print(f"  {'-'*58}")
+
+    # Sort by total return, highest first
+    sorted_data = sorted(
+        comparison_data.items(),
+        key=lambda x: x[1]["total_return"],
+        reverse=True
+    )
+
+    for ticker, data in sorted_data:
+        ret = data["total_return"]
+        vol = data["volatility"]
+        ratio = ret / vol if vol > 0 else 0    # simplified Sharpe-like ratio
+
+        print(f"  {ticker:<10} {ret:>+13.2%} {vol:>14.2%} {ratio:>14.2f}")
+
+    print(f"\n  Return/Risk = Total Return ÷ Volatility")
+    print(f"  Higher is better. Same return, less risk = wins.")
