@@ -98,3 +98,64 @@ def explain_ohlcv() -> None:
     print(f"{'='*45}")
     for col, meaning in explanations.items():
         print(f"  {col:<15} : {meaning}")
+def print_company_info(info: dict) -> None:
+    """
+    Print a clean, readable company fundamentals card.
+
+    Args:
+        info: Dict returned by fetch_company_info
+    """
+    def fmt_market_cap(val):
+        if val == "N/A":
+            return "N/A"
+        if val >= 1_000_000_000_000:
+            return f"{val / 1_000_000_000_000:.2f}T"
+        if val >= 1_000_000_000:
+            return f"{val / 1_000_000_000:.2f}B"
+        if val >= 1_000_000:
+            return f"{val / 1_000_000:.2f}M"
+        return str(val)
+
+    def fmt_employees(val):
+        if val == "N/A":
+            return "N/A"
+        return f"{val:,}"
+
+    def fmt_pe(val):
+        if val == "N/A":
+            return "N/A"
+        return f"{val:.2f}x"
+
+    def fmt_yield(val):
+        if val == "N/A":
+            return "N/A"
+        return f"{val * 100:.2f}%"
+
+    def fmt_beta(val):
+        if val == "N/A":
+            return "N/A"
+        return f"{val:.2f}"
+
+    currency = info.get("currency", "")
+
+    print(f"\n{'='*50}")
+    print(f"  {info['name']}  ({info['ticker']})")
+    print(f"{'='*50}")
+
+    print(f"\n  🏢 Business")
+    print(f"  {'Sector':<20} : {info['sector']}")
+    print(f"  {'Industry':<20} : {info['industry']}")
+    print(f"  {'Country':<20} : {info['country']}")
+    print(f"  {'Employees':<20} : {fmt_employees(info['employees'])}")
+
+    print(f"\n  💰 Size & Price")
+    print(f"  {'Market Cap':<20} : {fmt_market_cap(info['market_cap'])} {currency}")
+    print(f"  {'Current Price':<20} : {info['current_price']} {currency}")
+    print(f"  {'52-Week High':<20} : {info['52w_high']} {currency}")
+    print(f"  {'52-Week Low':<20} : {info['52w_low']} {currency}")
+
+    print(f"\n  📊 Valuation")
+    print(f"  {'PE Ratio':<20} : {fmt_pe(info['pe_ratio'])}")
+    print(f"  {'EPS':<20} : {info['eps']} {currency}")
+    print(f"  {'Dividend Yield':<20} : {fmt_yield(info['dividend_yield'])}")
+    print(f"  {'Beta':<20} : {fmt_beta(info['beta'])}")

@@ -428,3 +428,128 @@ def plot_volatility_comparison(returns_dict: dict) -> go.Figure:
     )
 
     return fig
+
+def plot_fundamentals_card(info: dict) -> go.Figure:
+    """
+    Visual fundamentals card — displays key metrics as a clean table chart.
+
+    Args:
+        info: Dict returned by fetch_company_info
+
+    Returns:
+        Plotly Figure object
+    """
+    def fmt_market_cap(val):
+        if val == "N/A":
+            return "N/A"
+        if val >= 1_000_000_000_000:
+            return f"{val / 1_000_000_000_000:.2f}T"
+        if val >= 1_000_000_000:
+            return f"{val / 1_000_000_000:.2f}B"
+        return f"{val / 1_000_000:.2f}M"
+
+    currency = info.get("currency", "")
+
+    metrics = [
+        ("Sector",         info["sector"]),
+        ("Industry",       info["industry"]),
+        ("Market Cap",     f"{fmt_market_cap(info['market_cap'])} {currency}"),
+        ("Current Price",  f"{info['current_price']} {currency}"),
+        ("PE Ratio",       f"{info['pe_ratio']:.2f}x" if info['pe_ratio'] != "N/A" else "N/A"),
+        ("EPS",            f"{info['eps']} {currency}" if info['eps'] != "N/A" else "N/A"),
+        ("Dividend Yield", f"{info['dividend_yield']*100:.2f}%" if info['dividend_yield'] != "N/A" else "N/A"),
+        ("Beta",           f"{info['beta']:.2f}" if info['beta'] != "N/A" else "N/A"),
+        ("52W High",       f"{info['52w_high']} {currency}"),
+        ("52W Low",        f"{info['52w_low']} {currency}"),
+    ]
+
+    labels = [m[0] for m in metrics]
+    values = [m[1] for m in metrics]
+
+    fig = go.Figure(data=[go.Table(
+        columnwidth=[200, 300],
+        header=dict(
+            values=["Metric", "Value"],
+            fill_color="#1E1E2E",
+            font=dict(color="white", size=13),
+            align="left",
+            height=35
+        ),
+        cells=dict(
+            values=[labels, values],
+            fill_color=[["#2A2A3E", "#252535"] * len(labels)],
+            font=dict(color="white", size=12),
+            align="left",
+            height=30
+        )
+    )])
+
+    fig.update_layout(
+        title=f"{info['name']} ({info['ticker']}) — Company Fundamentals",
+        template="plotly_dark",
+        margin=dict(t=60, b=20, l=20, r=20)
+    )
+
+    return fig
+
+
+def plot_52week_range(info: dict) -> go.Figure:
+    """
+    Visual gauge showing where the current price sits
+    within the 52-week high/low range.
+
+    Args:
+        info: Dict returned by fetch_company_info
+
+    Returns:
+        Plotly Figure object
+    """
+    low = info["52w_low"]
+    high = info["52w_high"]
+    current = info["current_price"]
+    currency = info.get("currency", "")
+
+    if any(v == "N/A" for v in [low, high, current]):
+        print("52-week range data not available.")
+        return go.Figure()
+
+    # Where is current price as a % of the range
+    position_pct = (current - low) / (high - low) * 100
+
+    fig = go.Figure()
+
+    # Range bar background
+    fig.add_trace(go.Bar(
+        x=["52-Week Range"],
+        y=[high - low],
+        base=[low],
+        marker_color="rgba(255,255,255,0.1)",
+        name="52W Range",
+        width=0.3
+    ))
+
+    # Current price marker
+    fig.add_trace(go.Scatter(
+        x=["52-Week Range"],
+        y=[current],
+        mode="markers+text",
+        marker=dict(size=16, color="#2196F3", symbol="diamond"),
+        text=[f"  {current} {currency}  ({position_pct:.1f}% of range)"],
+        textposition="middle right",
+        name="Current Price"
+    ))
+
+    fig.update_layout(
+        title=f"{info['ticker']} — 52-Week Price Range",
+        yaxis_title=f"Price ({currency})",
+        template="plotly_dark",
+        showlegend=True,
+        annotations=[
+            dict(x=0, y=low, text=f"Low: {low}", showarrow=False,
+                 font=dict(color="#EF5350"), xanchor="center", yanchor="top"),
+            dict(x=0, y=high, text=f"High: {high}", showarrow=False,
+                 font=dict(color="#26A69A"), xanchor="center", yanchor="bottom"),
+        ]
+    )
+
+    return fig
