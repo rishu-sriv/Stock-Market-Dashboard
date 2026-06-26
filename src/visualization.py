@@ -154,7 +154,7 @@ def plot_with_moving_average(df: pd.DataFrame, ticker: str, window: int = 20) ->
     )
 
     return fig
-    
+
 def plot_daily_returns(daily_returns: pd.Series, ticker: str) -> go.Figure:
     """
     Bar chart of daily returns — shows every up and down day.
@@ -291,6 +291,139 @@ def plot_cumulative_returns(cumulative_returns: pd.Series, ticker: str) -> go.Fi
         xaxis_title="Date",
         yaxis_title="Portfolio Value (₹)",
         hovermode="x unified",
+        template="plotly_dark"
+    )
+
+    return fig
+
+def plot_rolling_volatility(daily_returns: pd.Series, ticker: str, window: int = 30) -> go.Figure:
+    """
+    Line chart of rolling annualized volatility over time.
+
+    Spikes = periods of high uncertainty (crashes, news events)
+    Troughs = calm, low-risk periods
+
+    Args:
+        daily_returns: Series of daily returns
+        ticker: Stock symbol for the chart title
+        window: Rolling window in days (default 30)
+
+    Returns:
+        Plotly Figure object
+    """
+    from src.analysis import calculate_rolling_volatility
+
+    rolling_vol = calculate_rolling_volatility(daily_returns, window=window)
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=rolling_vol.index,
+        y=rolling_vol * 100,           # show as percentage
+        mode="lines",
+        name=f"{window}-Day Rolling Volatility",
+        line=dict(color="#FF9800", width=2),
+        fill="tozeroy",
+        fillcolor="rgba(255, 152, 0, 0.1)"
+    ))
+
+    fig.update_layout(
+        title=f"{ticker} — {window}-Day Rolling Volatility (Annualized)",
+        xaxis_title="Date",
+        yaxis_title="Volatility (%)",
+        template="plotly_dark",
+        hovermode="x unified"
+    )
+
+    return fig
+
+
+def plot_return_vs_volatility(returns_dict: dict) -> go.Figure:
+    """
+    Scatter plot comparing return vs volatility across multiple stocks.
+
+    X-axis = annualized volatility (risk)
+    Y-axis = total return (reward)
+
+    Stocks in the top-left are ideal: high return, low risk.
+    Stocks in the bottom-right are worst: low return, high risk.
+
+    Args:
+        returns_dict: Dict of {ticker: daily_returns_series}
+
+    Returns:
+        Plotly Figure object
+    """
+    from src.analysis import annualized_volatility, calculate_cumulative_returns
+
+    tickers, vols, returns = [], [], []
+
+    for ticker, daily_returns in returns_dict.items():
+        vol = annualized_volatility(daily_returns)
+        total = calculate_cumulative_returns(daily_returns).iloc[-1] - 1
+        tickers.append(ticker)
+        vols.append(vol * 100)
+        returns.append(total * 100)
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=vols,
+        y=returns,
+        mode="markers+text",
+        text=tickers,
+        textposition="top center",
+        marker=dict(size=14, color="#2196F3"),
+        name="Stocks"
+    ))
+
+    # Reference lines
+    fig.add_hline(y=0, line_color="white", line_width=0.8, opacity=0.3)
+
+    fig.update_layout(
+        title="Return vs Volatility — Risk/Reward Map",
+        xaxis_title="Annualized Volatility / Risk (%)",
+        yaxis_title="Total Return (%)",
+        template="plotly_dark"
+    )
+
+    return fig
+
+
+def plot_volatility_comparison(returns_dict: dict) -> go.Figure:
+    """
+    Bar chart comparing annualized volatility across multiple stocks.
+    Bars sorted from lowest to highest volatility.
+
+    Args:
+        returns_dict: Dict of {ticker: daily_returns_series}
+
+    Returns:
+        Plotly Figure object
+    """
+    from src.analysis import annualized_volatility
+
+    data = {
+        ticker: annualized_volatility(returns) * 100
+        for ticker, returns in returns_dict.items()
+    }
+
+    # Sort lowest to highest
+    data = dict(sorted(data.items(), key=lambda x: x[1]))
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=list(data.keys()),
+        y=list(data.values()),
+        marker_color="#EF5350",
+        name="Annualized Volatility"
+    ))
+
+    fig.update_layout(
+        title="Annualized Volatility Comparison",
+        xaxis_title="Stock",
+        yaxis_title="Volatility (%)",
         template="plotly_dark"
     )
 

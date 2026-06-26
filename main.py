@@ -1,38 +1,39 @@
-from src.data_loader import fetch_stock_data
+from src.data_loader import fetch_stock_data, fetch_multiple_stocks
 from src.utils import clean_data
 from src.analysis import (
     calculate_daily_returns,
-    calculate_cumulative_returns,
-    total_return,
-    best_worst_days,
-    return_summary
+    volatility_summary,
+    compare_volatility
 )
 from src.visualization import (
-    plot_daily_returns,
-    plot_return_distribution,
-    plot_cumulative_returns
+    plot_rolling_volatility,
+    plot_return_vs_volatility,
+    plot_volatility_comparison
 )
 
-# Fetch and clean
+# --- Single stock volatility ---
 ticker = "AAPL"
 df = fetch_stock_data(ticker, period="1y")
 df = clean_data(df)
-
-# Calculate returns
 daily_returns = calculate_daily_returns(df)
-cumulative_returns = calculate_cumulative_returns(daily_returns)
 
-# Print summary
-return_summary(daily_returns, ticker=ticker)
+volatility_summary(daily_returns, ticker=ticker)
 
-# Best and worst days
-bw = best_worst_days(daily_returns, n=5)
-print("\n🟢 Best 5 Trading Days")
-print((bw["best"] * 100).round(2).to_string())
-print("\n🔴 Worst 5 Trading Days")
-print((bw["worst"] * 100).round(2).to_string())
+plot_rolling_volatility(daily_returns, ticker, window=30).show()
+
+
+# --- Compare multiple stocks ---
+tickers = ["AAPL", "MSFT", "GOOGL", "TSLA"]
+stocks = fetch_multiple_stocks(tickers, period="1y")
+
+returns_dict = {}
+for t, stock_df in stocks.items():
+    stock_df = clean_data(stock_df)
+    returns_dict[t] = calculate_daily_returns(stock_df)
+
+# Terminal comparison table
+compare_volatility(returns_dict)
 
 # Charts
-plot_daily_returns(daily_returns, ticker).show()
-plot_return_distribution(daily_returns, ticker).show()
-plot_cumulative_returns(cumulative_returns, ticker).show()
+plot_volatility_comparison(returns_dict).show()
+plot_return_vs_volatility(returns_dict).show()
