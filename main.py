@@ -1,28 +1,26 @@
-from src.data_loader import fetch_stock_data, fetch_multiple_stocks, save_to_csv
+from src.data_loader import fetch_stock_data
+from src.utils import describe_data, check_missing_values, clean_data, explain_ohlcv
 
-# --- Test 1: Fetch a single stock ---
-print("=== Apple (AAPL) ===")
+# Fetch data
 apple = fetch_stock_data("AAPL", period="1y")
 
-print(f"\nShape: {apple.shape}")          # (rows, columns)
-print(f"\nColumns: {apple.columns.tolist()}")
-print(f"\nDate range: {apple.index[0]} → {apple.index[-1]}")
-print(f"\nFirst 5 rows:")
-print(apple.head())
+# Understand the columns
+explain_ohlcv()
 
-# Save it
-save_to_csv(apple, "AAPL_1y")
+# Full summary
+describe_data(apple, ticker="AAPL")
 
+# Check data quality
+check_missing_values(apple)
 
-# --- Test 2: Fetch an Indian stock ---
-print("\n=== Reliance Industries (RELIANCE.NS) ===")
-reliance = fetch_stock_data("RELIANCE.NS", period="1y")
-print(reliance.head())
+# Clean it
+apple = clean_data(apple)
 
-
-# --- Test 3: Fetch multiple stocks at once ---
-print("\n=== Multiple Stocks ===")
-stocks = fetch_multiple_stocks(["AAPL", "MSFT", "GOOGL"], period="6mo")
-
-for ticker, df in stocks.items():
-    print(f"{ticker}: {df.shape[0]} trading days of data")
+# One specific thing to notice:
+# High is always >= Open, Close, Low
+# Low is always <= Open, Close, High
+# Verify this yourself:
+print("\n✅ Sanity Checks")
+print(f"High >= Close always: {(apple['High'] >= apple['Close']).all()}")
+print(f"Low  <= Close always: {(apple['Low']  <= apple['Close']).all()}")
+print(f"High >= Low   always: {(apple['High'] >= apple['Low']).all()}")
