@@ -1,10 +1,16 @@
 from src.data_loader import fetch_stock_data
 from src.utils import clean_data
+from src.analysis import (
+    calculate_daily_returns,
+    calculate_cumulative_returns,
+    total_return,
+    best_worst_days,
+    return_summary
+)
 from src.visualization import (
-    plot_closing_price,
-    plot_candlestick,
-    plot_volume,
-    plot_with_moving_average
+    plot_daily_returns,
+    plot_return_distribution,
+    plot_cumulative_returns
 )
 
 # Fetch and clean
@@ -12,18 +18,21 @@ ticker = "AAPL"
 df = fetch_stock_data(ticker, period="1y")
 df = clean_data(df)
 
-# Chart 1 — Closing price
-fig1 = plot_closing_price(df, ticker)
-fig1.show()
+# Calculate returns
+daily_returns = calculate_daily_returns(df)
+cumulative_returns = calculate_cumulative_returns(daily_returns)
 
-# Chart 2 — Candlestick
-fig2 = plot_candlestick(df, ticker)
-fig2.show()
+# Print summary
+return_summary(daily_returns, ticker=ticker)
 
-# Chart 3 — Volume
-fig3 = plot_volume(df, ticker)
-fig3.show()
+# Best and worst days
+bw = best_worst_days(daily_returns, n=5)
+print("\n🟢 Best 5 Trading Days")
+print((bw["best"] * 100).round(2).to_string())
+print("\n🔴 Worst 5 Trading Days")
+print((bw["worst"] * 100).round(2).to_string())
 
-# Chart 4 — Price + Moving Average
-fig4 = plot_with_moving_average(df, ticker, window=20)
-fig4.show()
+# Charts
+plot_daily_returns(daily_returns, ticker).show()
+plot_return_distribution(daily_returns, ticker).show()
+plot_cumulative_returns(cumulative_returns, ticker).show()
